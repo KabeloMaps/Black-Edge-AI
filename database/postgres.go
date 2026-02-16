@@ -1,19 +1,23 @@
 package database
 
-import(
+import (
+	"blackedge-backend/config"
 	"fmt"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
 
-func ConnectPostgres(){
-	dsn := "host=localhost user=postgres password=postgres dbname=blackedge port=5432 sslmode=disable"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		panic("Failed to connect to PostgreSQL database!")
+	func ConnectPostgres(cfg *config.Config) {
+		fmt.Println("🔗 Postgres DSN:", cfg.PostgresDSN)
+	
+		db, err := gorm.Open(postgres.Open(cfg.PostgresDSN), &gorm.Config{})
+		if err != nil {
+			panic(err)
+		}
+	
+		DB = db
+		fmt.Println("✅ Postgres connected")
 	}
-	DB = db
-	fmt.Println("Connected to PostgreSQL database successfully!")
-}

@@ -1,11 +1,14 @@
 package routes
 
-import "github.com/gin-gonic/gin"
-
+import(
+	"blackedge-backend/api"
+ 	"github.com/gin-gonic/gin"
+)
 func RegisterRoutes(r *gin.Engine) {
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"status": "BlackEdge AI Backend Online",
+			"status": "Manga Engine Online",
 		})
 	})
+	r.GET("/manga", api.GetMangaList)
 }
