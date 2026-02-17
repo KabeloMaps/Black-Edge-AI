@@ -19,7 +19,7 @@ func LoadConfig() *Config{
 			"host=localhost port=5432 user=stenamatousand dbname=blackedge sslmode=disable",
 		),
 		MongoURI: getEnv("MONGO_URI", "mongodb://localhost:27017"),
-		ServerPort: strings.TrimSpace(getEnv("SERVER_PORT", "8080")),
+		ServerPort: strings.TrimSpace(getEnv("SERVER_PORT", ":8080")),
 	}
 }
 
