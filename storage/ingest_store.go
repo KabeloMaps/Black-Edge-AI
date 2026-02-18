@@ -2,11 +2,11 @@ package storage
 
 import (
 	"blackedge-backend/database"
-	"blackedge-backend/ingestion"
+	"blackedge-backend/models"
 	"context"
 )
 
-func SaveNormalizedManga(data []ingestion.NormalizedManga) error {
+func SaveNormalizedManga(data []models.NormalizedManga) error {
 	collection := database.MongoClient.Database("manga_engine").Collection("normalized_manga")
 
 	var docs []interface{}

@@ -1,19 +1,22 @@
 package ingestion
 
-import "fmt"
+import (
+	"blackedge-backend/models"
+	"fmt"
+)
 
-func RunIngestion(source SourceAdapter) ([]NormalizedManga, error) {
+func RunIngestion(source SourceAdapter) ([]models.NormalizedManga, error) {
+
 	fmt.Println("🔁 Ingesting from:", source.Name())
 
-	rawData, err := source.GetMangaList()
+	raw, err := source.Scrape()
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("📥 Raw items scraped:", len(rawData))
+	fmt.Println("📥 Raw items scraped:", len(raw))
 
-	normalized := NormalizeManga(rawData, source.Name())
-	fmt.Println("📦 Normalized items:", len(normalized))
+	normalized := NormalizeManga(raw, source.Name())
 
 	return normalized, nil
 }

@@ -1,36 +1,24 @@
 package ingestion
 
 import (
+	"blackedge-backend/models"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 )
 
-type NormalizedManga struct {
-	ID          string   `json:"id"`          // Unique hash ID
-	Title       string   `json:"title"`       // Normalized title
-	Slug        string   `json:"slug"`        // URL-friendly
-	Description string   `json:"description"` // Optional
-	Author      string   `json:"author"`      // Optional
-	CoverImage  string   `json:"cover_image"` // Optional
-	Genres      []string `json:"genres"`      // Optional
-	Language    string   `json:"language"`    // Optional
-	Status      string   `json:"status"`      // Ongoing/Completed/Unknown
-	Source      string   `json:"source"`      // Name of scraper
-	SourceURL   string   `json:"source_url"`  // Original URL
-}
+func NormalizeManga(scraped []models.ScrapedManga, sourceName string) []models.NormalizedManga {
 
-// NormalizeManga takes raw scraped data and returns normalized entries
-func NormalizeManga(scraped []ScrapedManga, sourceName string) []NormalizedManga {
-	var normalized []NormalizedManga
-	seen := make(map[string]bool) // deduplication
+	var normalized []models.NormalizedManga
+	seen := make(map[string]bool)
 
-	// Regex for slug cleanup (remove non-alphanumeric except dash)
 	re := regexp.MustCompile(`[^\w-]`)
 
 	for _, m := range scraped {
+
 		title := strings.TrimSpace(strings.Title(m.Title))
 		slug := strings.ToLower(strings.ReplaceAll(title, " ", "-"))
 		slug = re.ReplaceAllString(slug, "-")
@@ -40,10 +28,11 @@ func NormalizeManga(scraped []ScrapedManga, sourceName string) []NormalizedManga
 			status = "unknown"
 		}
 
-		var genres []string
+		cleanGenres := []string{}
 		for _, g := range m.Genres {
-			if trimmed := strings.TrimSpace(g); trimmed != "" {
-				genres = append(genres, trimmed)
+			gg := strings.TrimSpace(strings.ToLower(g))
+			if gg != "" {
+				cleanGenres = append(cleanGenres, gg)
 			}
 		}
 
@@ -56,18 +45,23 @@ func NormalizeManga(scraped []ScrapedManga, sourceName string) []NormalizedManga
 		}
 		seen[id] = true
 
-		normalized = append(normalized, NormalizedManga{
+		now := time.Now().Unix()
+
+		normalized = append(normalized, models.NormalizedManga{
 			ID:          id,
 			Title:       title,
 			Slug:        slug,
-			Description: strings.TrimSpace(m.Description),
-			Author:      strings.TrimSpace(m.Author),
-			CoverImage:  strings.TrimSpace(m.CoverImage),
-			Genres:      genres,
-			Language:    strings.TrimSpace(m.Language),
+			Description: m.Description,
+			Author:      m.Author,
+			CoverImage:  m.CoverImage,
+			Genres:      cleanGenres,
+			Language:    m.Language,
 			Status:      status,
 			Source:      sourceName,
-			SourceURL:   strings.TrimSpace(m.SourceURL),
+			SourceURL:   m.SourceURL,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+			Version:     1,
 		})
 	}
 

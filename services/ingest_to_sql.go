@@ -2,11 +2,10 @@ package services
 
 import (
 	"blackedge-backend/database"
-	"blackedge-backend/ingestion"
 	"blackedge-backend/models"
 )
 
-func SaveToPostgres(data []ingestion.NormalizedManga) error {
+func SaveToPostgres(data []models.NormalizedManga) error {
 	for _, m := range data {
 		record := models.Manga{
 			Title:       m.Title,

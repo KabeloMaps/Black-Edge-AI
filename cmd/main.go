@@ -1,42 +1,44 @@
 package main
 
 import (
-	"blackedge-backend/config"
-	"blackedge-backend/database"
+	"context"
+	"log"
+
+	"blackedge-backend/api"
 	"blackedge-backend/ingestion"
-	"blackedge-backend/models"
-	"blackedge-backend/routes"
-	"blackedge-backend/services"
 	"blackedge-backend/storage"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	cfg := config.LoadConfig()
 
-	r := gin.Default()
+	// Mongo
+	storage.ConnectMongo("mongodb://localhost:27017", "blackedge")
 
-	// DB Connections
-	database.ConnectPostgres(cfg)
-	database.ConnectMongo(cfg)
-
-	// Auto-migrate
-	database.DB.AutoMigrate(
-		&models.Manga{},
-		&models.Chapter{},
-	)
-
-	// 🔥 SCRAPER PIPELINE (THIS IS THE MISSING LINK)
-	source := ingestion.PublicSource{}
-	normalizedData, err := ingestion.RunIngestion(source)
+	// Ingestion
+	source := ingestion.PublicDirectorySource{}
+	items, err := ingestion.RunIngestion(source)
 	if err != nil {
-		panic(err)
+		log.Fatal("Ingestion failed:", err)
 	}
 
-	_ = storage.SaveNormalizedManga(normalizedData)
-	_ = services.SaveToPostgres(normalizedData) // optional: map NormalizedManga → Manga struct
+	// Store
+	ctx := context.Background()
+	for _, m := range items {
+		err := storage.InsertManga(ctx, m)
+		if err != nil {
+			log.Println("Insert failed:", err)
+		}
+	}
 
-	routes.RegisterRoutes(r)
-	_ = r.Run(cfg.ServerPort)
+	// API
+	r := gin.Default()
+	r.GET("/manga", api.GetMangaList)
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
+
+	log.Println("🚀 Server listening on :8080")
+	r.Run(":8080")
 }
