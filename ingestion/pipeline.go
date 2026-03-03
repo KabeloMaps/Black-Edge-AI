@@ -1,33 +1,41 @@
-package ingestion
+package core
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
+	"log"
 
+	corepkg "blackedge-backend/core"
+	"blackedge-backend/ingestion/normalize"
+	"blackedge-backend/models"
 	"blackedge-backend/storage"
 )
 
-func RunPipeline(source SourceAdapter) error {
-	fmt.Println("🔁 Ingesting from:", source.Name())
+// Orchestrates full ingestion pipeline
+func RunPipeline(source corepkg.Source) error {
 
-	// Scrape
-	raw, err := source.Scrape()
+	// 1) Scrape
+	raw, err := source.Fetch()
 	if err != nil {
 		return err
 	}
-	fmt.Println("📥 Raw items scraped:", len(raw))
 
-	// Normalize
-	normalized := NormalizeManga(raw, source.Name())
-	fmt.Println("📦 Normalized items:", len(normalized))
+	// 2) Decode + normalize
+	var scraped []models.ScrapedManga
+	if err := json.Unmarshal(raw, &scraped); err != nil {
+		return err
+	}
 
-	// Store
+	normalized := normalize.NormalizeManga(scraped, source.Name())
+
+	// 3) Store
 	ctx := context.Background()
-	err = storage.InsertMangaBatch(ctx, normalized)
-	if err != nil {
-		return err
+	for _, m := range normalized {
+		if err := storage.InsertManga(ctx, m); err != nil {
+			log.Println("Insert failed:", err)
+		}
 	}
 
-	fmt.Println("✅ Pipeline complete for:", source.Name())
+	log.Println("✅ Pipeline completed:", source.Name(), "items:", len(normalized))
 	return nil
 }

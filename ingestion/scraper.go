@@ -1,4 +1,4 @@
-package ingestion
+package core
 
 import (
 	"net/http"

@@ -1,44 +1,23 @@
 package main
 
 import (
-	"context"
-	"log"
-
-	"blackedge-backend/api"
-	"blackedge-backend/ingestion"
+	"blackedge-backend/core"
+	"blackedge-backend/ingestion/workers"
+	"blackedge-backend/queue"
 	"blackedge-backend/storage"
-
-	"github.com/gin-gonic/gin"
+	"log"
 )
 
 func main() {
 
-	// Mongo
-	storage.ConnectMongo("mongodb://localhost:27017", "blackedge")
+	storage.ConnectMongo("mongodb://127.0.0.1:27017", "blackedge")
+	queue.ConnectRedis()
 
-	// Ingestion
-	source := ingestion.PublicDirectorySource{}
-	items, err := ingestion.RunIngestion(source)
-	if err != nil {
-		log.Fatal("Ingestion failed:", err)
-	}
+	workers.StartIngestWorker()
 
-	// Store
-	ctx := context.Background()
-	for _, m := range items {
-		err := storage.InsertManga(ctx, m)
-		if err != nil {
-			log.Println("Insert failed:", err)
-		}
-	}
+	go core.RunRegistryIngestion()
 
-	// API
-	r := gin.Default()
-	r.GET("/manga", api.GetMangaList)
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
-	})
+	log.Println("🚀 BlackEdge Core Online")
 
-	log.Println("🚀 Server listening on :8080")
-	r.Run(":8080")
+	select {} // keep alive
 }
